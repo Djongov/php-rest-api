@@ -1,0 +1,54 @@
+<Files ~ "^\.(htaccess|htpasswd)$">
+Deny from all
+</Files>
+DirectoryIndex index.php index.html
+
+<IfModule mod_negotiation.c>
+    Options -Indexes +FollowSymLinks
+</IfModule>
+
+AddType image/webp .webp
+
+<FilesMatch "\.(webp)$">
+  Header set Cache-Control "max-age=31536000, public"
+</FilesMatch>
+
+
+RewriteEngine On
+
+RewriteCond %{HTTP_ACCEPT} image/webp
+RewriteCond %{DOCUMENT_ROOT}/$1.webp -f
+RewriteRule ^(.*\.(jpg|jpeg|png))$ $1.webp [T=image/webp,E=accept:1]
+
+# PHP Router
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !\.(jpg|jpeg|png|gif|webp)$ [NC]
+RewriteRule ^.*$ index.php [L]
+
+# Rewrite /docs to /docs
+RewriteRule ^documentation/(.*)$ /docs/$1 [R=301,L]
+
+<Files "Dockerfile|docker-compose\.yml">  
+    Order Allow,Deny
+    Deny from all
+    Allow from localhost
+    Allow from 127.0.0.1
+</Files>
+
+Header always set Cache-Control "no-store, must-revalidate, no-cache, max-age=0"
+Header always set X-Frame-Options "DENY"
+Header always set X-Xss-Protection "0"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+#Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+Header always set Permissions-Policy "display-capture=(),accelerometer=(),autoplay=(),camera=(),display-capture=(),encrypted-media=(),fullscreen=(),geolocation=(),gyroscope=(),magnetometer=(),microphone=(),midi=(),payment=(),picture-in-picture=(),publickey-credentials-get=(),screen-wake-lock=(),sync-xhr=(self),usb=(),web-share=(),xr-spatial-tracking=()"
+Header always set X-Permitted-Cross-Domain-Policies "none"
+Header always set Cross-Origin-Embedder-Policy "unsafe-none"
+Header always set Cross-Origin-Opener-Policy "same-origin"
+Header always set Cross-Origin-Resource-Policy "cross-origin"
+#Header always set Access-Control-Allow-Origin "http://localhost:3000, https://portal.azure.com/"
+#Header always set Access-Control-Allow-Methods "GET,PUT,POST,DELETE,OPTIONS"
+#Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, X-API-KEY, privatekey"
+#Header always set Report-To "{&#34;group&#34;:&#34;csp-endpoint&#34;,&#34;max_age&#34;:10886400,&#34;endpoints&#34;:[{&#34;url&#34;:&#34;/csp-report&#34;}]}"
+Header always set Content-Security-Policy "upgrade-insecure-requests;default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self' https://cdn.tailwindcss.com/ https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js 'nonce-1nL1n3JsRuN1192kwoko2k323WKE';img-src 'self' https://ui-avatars.com/api/ https://lh3.googleusercontent.com/ https://quickchart.io/;report-uri /csp-report;"
