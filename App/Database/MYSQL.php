@@ -2,7 +2,7 @@
 
 namespace App\Database;
 
-use Controllers\JsonOutput;
+use Controllers\Output;
 use Exception;
 
 class MYSQL
@@ -12,15 +12,15 @@ class MYSQL
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
         $conn = mysqli_init();
 
-        if (defined("MYSQL_SSL") && MYSQL_SSL) {
+        if (defined("DB_SSL") && DB_SSL) {
             mysqli_ssl_set($conn, null, null, CA_CERT, null, null);
             try {
                 $conn->real_connect('p:' . DB_HOST, DB_USER, DB_PASS, DB_NAME, 3306, MYSQLI_CLIENT_SSL);
             } catch (\mysqli_sql_exception $e) {
                 if (ini_get('display_errors') === '1') {
-                   JsonOutput::error($e->getMessage(), 400);
+                   Output::error($e->getMessage(), 400);
                 } else {
-                    JsonOutput::error('Database connection error', 400);
+                    Output::error('Database connection error', 400);
                 }
             }
         } else {
@@ -28,9 +28,9 @@ class MYSQL
                 $conn->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
             } catch (\mysqli_sql_exception $e) {
                 if (ini_get('display_errors') === '1') {
-                    JsonOutput::error($e->getMessage(), 400);
+                    Output::error($e->getMessage(), 400);
                 } else {
-                    JsonOutput::error('Database connection error', 400);
+                    Output::error('Database connection error', 400);
                 }
             }
         }
@@ -43,7 +43,7 @@ class MYSQL
         try {
             $stmt = $link->prepare($query);
         } catch (\mysqli_sql_exception $e) {
-            JsonOutput::error($e->getMessage(), 400);
+            Output::error($e->getMessage(), 400);
         }
         $result = false;
         try {
@@ -54,7 +54,7 @@ class MYSQL
                 $result = $stmt;
             }
         } catch (\mysqli_sql_exception $e) {
-            JsonOutput::error($e->getMessage(), 400);
+            Output::error($e->getMessage(), 400);
         }
 
         $link->close();
@@ -68,7 +68,7 @@ class MYSQL
         try {
             $stmt = $link->prepare($query);
         } catch (Exception $e) {
-            JsonOutput::error($e->getMessage(), 400);
+            Output::error($e->getMessage(), 400);
         }
         if (is_array($statement)) {
             $statementParams = '';
@@ -98,11 +98,11 @@ class MYSQL
                 // Debugging statement 3: Print the error message
                 echo "Debug MySQL Error: $error\n";
                 $link->close();
-                JsonOutput::error($error, 400);
+                Output::error($error, 400);
             }
         } catch (Exception $e) {
             $link->close();
-            JsonOutput::error($e->getMessage(), 400);
+            Output::error($e->getMessage(), 400);
         }
     }
     // Sometimes you may need to make a bundle of queries one after the other, returns a result
@@ -113,7 +113,7 @@ class MYSQL
             try {
                 $result = mysqli_query($link, $sql);
             } catch (Exception $e) {
-                JsonOutput::error($e->getMessage(), 400);
+                Output::error($e->getMessage(), 400);
             }
         }
         $link->close();
@@ -149,7 +149,7 @@ class MYSQL
         // Check if all keys in $reports_array match the columns
         foreach ($array as $key => $value) {
             if (!array_key_exists($key, $columns)) {
-                JsonOutput::error("Column '$key' does not exist in table '$table'", 400);
+                Output::error("Column '$key' does not exist in table '$table'", 400);
             }
         }
     }
@@ -203,14 +203,14 @@ class MYSQL
             }
             if (!array_key_exists($key, $dbColumns)) {
                 // Column does not exist in the database
-                JsonOutput::error("Column '$key' does not exist in table '$table");
+                Output::error("Column '$key' does not exist in table '$table", 400);
             } else {
                 // Column exists, check data type
                 $expectedType = self::normalizeDataType($dbColumns[$key]);
                 $actualType = self::normalizeDataType(gettype($value));
 
                 if (self::checkDataType($expectedType, $actualType)) {
-                    JsonOutput::error("Column '$key' in table '$table' has incorrect data type. Expected '$expectedType', got '$actualType'");
+                    Output::error("Column '$key' in table '$table' has incorrect data type. Expected '$expectedType', got '$actualType'", 400);
                 }
             }
         }

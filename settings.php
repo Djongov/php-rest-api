@@ -1,6 +1,14 @@
 <?php
 ini_set('display_errors', 1);
-define("MYSQL_SSL", filter_var($_ENV['MYSQL_SSL'], FILTER_VALIDATE_BOOLEAN));
+
+if (isset($_ENV['DB_SSL'])) {
+    if (filter_var($_ENV['DB_SSL'], FILTER_VALIDATE_BOOLEAN)) {
+        define("DB_SSL", $_ENV['DB_SSL']);
+    } else {
+        define("DB_SSL", false);
+    }
+}
+define("DB_DRIVER", $_ENV['DB_DRIVER']);
 define("DB_HOST", $_ENV['DB_HOST']);
 define("DB_USER", $_ENV['DB_USER']);
 define("DB_PASS", $_ENV['DB_PASS']);

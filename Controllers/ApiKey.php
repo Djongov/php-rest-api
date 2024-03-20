@@ -19,7 +19,7 @@ class ApiKey
             Output::error($e->getMessage(), $e->getCode());
         }
     }
-    public function create(string $username, string $access, string $note) : string
+    public function create(string $username, string $access, string $note) : array
     {
         $apiKeyModel = new ModelsApiKey();
         try {
@@ -28,12 +28,29 @@ class ApiKey
             Output::error($e->getMessage(), $e->getCode());
         }
     }
-    public function update(array $data) : array
+    public function update(array $data) : string
     {
         $apiKeyModel = new ModelsApiKey();
         try {
-            $update = $apiKeyModel->update($data);
-            return $update;
+            $rowsAffected = $apiKeyModel->update($data);
+            if ($rowsAffected === 0) {
+                return 'No rows affected';
+            } else {
+                return $rowsAffected;
+            }
+        } catch (\Exception $e) {
+            Output::error($e->getMessage(), $e->getCode());
+        }
+    }
+    public function delete(int $id) : string
+    {
+        $apiKeyModel = new ModelsApiKey();
+        try {
+            if ($apiKeyModel->delete($id)) {
+                return 'api key with id ' . $id . ' deleted';
+            } else {
+                return 'No rows affected';
+            }
         } catch (\Exception $e) {
             Output::error($e->getMessage(), $e->getCode());
         }
