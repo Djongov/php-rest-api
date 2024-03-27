@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $result = $apiKey->update($data);
     if (!$result) {
-        Output::error('nothing updated', 400);
+        Output::error('nothing updated', 409);
     } else {
         echo Output::success('successfully updated api key with id ' . $data['id'] . ' with ' . json_encode($data));
     }

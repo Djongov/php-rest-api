@@ -38,12 +38,14 @@ class Output
             );
             echo $xml_data->asXML();
         }
+        self::logRequest();
         die();
     }
     public static function success(string|array $data) : mixed
     {
         $response = self::responseType();
         header('Content-Type: application/' . $response);
+        self::logRequest();
         if ($response === 'json') {
             return json_encode(
                 [
@@ -84,6 +86,31 @@ class Output
                 return 'xml';
             } else {
                 return 'json';
+            }
+        }
+    }
+    public static function logRequest()
+    {
+        $apiChecks = new \Controllers\ApiChecks();
+        $apiKey = $apiChecks->apiKeyHeaderGet();
+        $ip = General::currentIP();
+        $browser = General::currentBrowser();
+        $method = $_SERVER['REQUEST_METHOD'];
+        $status = http_response_code();
+        $queryString = $_SERVER['QUERY_STRING'];
+        $path = strtok($_SERVER['REQUEST_URI'], '?');
+
+        $db = new \App\Database\DB();
+        $pdo = $db->getConnection();
+        $query = "INSERT INTO `request_log` (`api_key`, `path`, `query_string`, `user_agent`, `status`, `method`, `client_ip`) VALUES (?,?,?,?,?,?,?)";
+        $stmt = $pdo->prepare($query);
+        try {
+            $stmt->execute([$apiKey, $path, $queryString, $browser, $status, $method, $ip]);
+        } catch (\PDOException $e) {
+            if (ini_get('display_errors') === '1') {
+                self::error($e->getMessage(), 500);
+            } else {
+                self::error('internal server error', 500);
             }
         }
     }
