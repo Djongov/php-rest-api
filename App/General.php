@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App;
 
 class General
@@ -24,8 +26,7 @@ class General
     {
         return $_SERVER['HTTP_USER_AGENT'];
     }
-    // This method catches if current uri is in the array of uris including wildcards
-    public static function matchRequestURI($uris)
+    public static function matchRequestURI(array $uris) : bool
     {
         // Get the current request URI
         $currentURI = $_SERVER['REQUEST_URI'];
@@ -41,6 +42,24 @@ class General
         }
 
         return false; // No match found
+    }
+    // This method catches if current uri is in the array of uris including wildcards
+    public static function matchRequestURIVsAccess(string $access) : bool
+    {
+        // Get the current request URI
+        $uri = $_SERVER['REQUEST_URI'];
+
+        // Escape special characters in the pattern
+        $pattern = preg_quote($access, '/');
+
+        // Replace '*' with a regex wildcard
+        $pattern = str_replace('\*', '.*', $pattern);
+
+        // Add regex delimiters and anchors
+        $pattern = '/^' . $pattern . '$/';
+
+        // Check if the URI matches the pattern
+        return (bool) preg_match($pattern, $uri, $matches);
     }
     // Array to xml
     public static function arrayToXml(array $data, \SimpleXMLElement $xml_data): \SimpleXMLElement

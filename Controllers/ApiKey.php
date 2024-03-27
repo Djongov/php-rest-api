@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Controllers;
 
 use Models\ApiKey as ModelsApiKey;
@@ -28,29 +30,20 @@ class ApiKey
             Output::error($e->getMessage(), $e->getCode());
         }
     }
-    public function update(array $data) : string
+    public function update(array $data): bool
     {
         $apiKeyModel = new ModelsApiKey();
         try {
-            $rowsAffected = $apiKeyModel->update($data);
-            if ($rowsAffected === 0) {
-                return 'No rows affected';
-            } else {
-                return $rowsAffected;
-            }
+            return (bool) $apiKeyModel->update($data) ? true : false;
         } catch (\Exception $e) {
             Output::error($e->getMessage(), $e->getCode());
         }
     }
-    public function delete(int $id) : string
+    public function delete(int $id) : bool
     {
         $apiKeyModel = new ModelsApiKey();
         try {
-            if ($apiKeyModel->delete($id)) {
-                return 'api key with id ' . $id . ' deleted';
-            } else {
-                return 'No rows affected';
-            }
+            return (bool) $apiKeyModel->delete($id) ? true : false;
         } catch (\Exception $e) {
             Output::error($e->getMessage(), $e->getCode());
         }

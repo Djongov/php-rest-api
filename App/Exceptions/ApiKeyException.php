@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exceptions;
 
 class ApiKeyException extends ExceptionsTemplate
@@ -8,7 +10,7 @@ class ApiKeyException extends ExceptionsTemplate
     {
         return new self('api key not found', 404);
     }
-    public function noApiKeysFound() : self
+    public function noApiKeyFound() : self
     {
         return new self('no api keys found', 404);
     }

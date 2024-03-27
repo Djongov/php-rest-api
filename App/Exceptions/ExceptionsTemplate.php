@@ -10,4 +10,28 @@ class ExceptionsTemplate extends \Exception implements ExceptionInterface
     {
         return new self($message, $code);
     }
+    public function emptyData() : self
+    {
+        return new self('no data provided', 400);
+    }
+    public function noParamter($paramter): self
+    {
+        return new self('no ' . $paramter . ' provided', 400);
+    }
+    public function emptyParameter($paramter) : self
+    {
+        return new self($paramter . ' value is empty', 400);
+    }
+    public function parameterNoInt($paramter) : self
+    {
+        return new self($paramter . ' is not an integer', 400);
+    }
+    public function parameterNoString($paramter) : self
+    {
+        return new self($paramter . ' is not a string', 400);
+    }
+    public function parameterNoBool($paramter) : self
+    {
+        return new self($paramter . ' is not a boolean', 400);
+    }
 }

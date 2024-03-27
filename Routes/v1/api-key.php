@@ -2,7 +2,6 @@
 
 use Controllers\Output;
 use Controllers\ApiKey;
-use Models\ApiKey as ModelsApiKey;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $apiKey = new ApiKey();
@@ -35,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-    $apiKey = new ModelsApiKey();
+    $apiKey = new ApiKey();
     $data = json_decode(file_get_contents('php://input'), true);
 
     if (empty($data)) {
@@ -43,14 +42,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     }
 
     $result = $apiKey->update($data);
-    echo Output::success($result);
+    if (!$result) {
+        Output::error('nothing updated', 400);
+    } else {
+        echo Output::success('successfully updated api key with id ' . $data['id'] . ' with ' . json_encode($data));
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $apiKey = new ApiKey();
-
+    
+    // Take the id from the path
     $id = (int) $routeInfo[2]['api-key'];
 
     $result = $apiKey->delete($id);
-    echo Output::success($id);
+    if ($result) {
+        echo Output::success('successfully deleted api key with id ' . $id);
+    } else {
+        Output::error($result, 400);
+    }
 }

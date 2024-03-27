@@ -1,10 +1,14 @@
 <?php
+
+declare(strict_types=1);
+
 define("START_TIME", microtime(true));
 // Load the autoloaders, local and composer
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/vendor/autoload.php';
 
 use Controllers\Output;
 use Controllers\ApiChecks;
+use App\General;
 
 $dotenv = \Dotenv\Dotenv::createImmutable(dirname($_SERVER['DOCUMENT_ROOT']));
 $dotenv->load();
@@ -46,7 +50,10 @@ switch ($routeInfo[0]) {
             $apiChecks = new ApiChecks();
             // Check if the secret header is set and if it's correct
             $apiChecks->checkSecretHeader();
-            $apiChecks->checkApiKeyHeader($uri);
+            // check for the api key header, excep the paths in the SKIP_AUTH_PATHS
+            if (!General::matchRequestURI(SKIP_AUTH_PATHS)) {
+                $apiChecks->checkApiKeyHeader($uri);
+            }
             // Check if Authorization
 
             include_once $controllerName;

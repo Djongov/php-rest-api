@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 ini_set('display_errors', 1);
 
 if (isset($_ENV['DB_SSL'])) {
@@ -23,7 +26,10 @@ define("CURL_CERT", dirname($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR . '
 define('SECRET_HEADER', 'secretheader');
 // Same as above
 define('SECRET_HEADER_VALUE', 'badass');
-
+// Name of the api key header
+define("API_KEY_NAME", 'X-API-KEY');
+// This is the path that the api key is checked against. If the path is in this array, the api key is not checked
+define("SKIP_AUTH_PATHS", ['/v1/api-key', '/v1/api-key/*']);
 /*
 
 Mailer Settings (Sendgrid)
@@ -38,3 +44,36 @@ if (SENDGRID) {
 
 define("FROM", 'admin@gamerz-bg.com');
 define("FROM_NAME", 'No Reply');
+
+$missing_extensions = [];
+
+$required_extensions = [
+    'curl',
+    'openssl'
+];
+
+if (DB_DRIVER === 'pgsql') {
+    $required_extensions[] = 'pdo_pgsql';
+}
+
+if (DB_DRIVER === 'sqlsrv') {
+    $required_extensions[] = 'pdo_sqlsrv';
+}
+
+if (DB_DRIVER === 'sqlite') {
+    $required_extensions[] = 'pdo_sqlite';
+}
+
+if (DB_DRIVER === 'mysql') {
+    $required_extensions[] = 'pdo_mysql';
+}
+
+foreach ($required_extensions as $extension) {
+    if (!extension_loaded($extension)) {
+        $missing_extensions[] = $extension;
+    }
+}
+
+if (!empty($missing_extensions)) {
+    die('The following extensions are missing: ' . implode(', ', $missing_extensions));
+}
