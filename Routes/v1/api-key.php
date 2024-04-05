@@ -51,13 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $apiKey = new ApiKey();
-    
-    // Take the id from the path
-    $id = (int) $routeInfo[2]['api-key'];
 
-    $result = $apiKey->delete($id);
+    // Take the id from the path
+    $key = $routeInfo[2]['api-key'];
+
+    $result = $apiKey->delete($key);
     if ($result) {
-        echo Output::success('successfully deleted api key with id ' . $id);
+        echo Output::success('successfully deleted api key ' . $key);
     } else {
         Output::error($result, 400);
     }

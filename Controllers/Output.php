@@ -10,42 +10,44 @@ class Output
 {
     public static function error(string|array $data, int $status_code): void
     {
-        // Let's decide what the expected response is. If Accept is not set, we'll default to JSON
+        // Check if error has already been handled
+        if (defined('ERROR_HANDLED')) {
+            // If it has, exit to prevent infinite loop
+            exit;
+        }
+
+        // Define a constant to mark that error is being handled
+        define('ERROR_HANDLED', true);
+
         $response = self::responseType();
         header('Content-Type: application/' . $response);
         http_response_code($status_code);
+
+        $reponseArray = [
+            'result' => 'error',
+            'timestampUTC' => gmdate("Y-m-d H:i:s"),
+            'serverResponseTimeMs' => self::responseTime(),
+            'data' => $data
+        ];
+
+        // Handle error response based on response type
         if ($response === 'json') {
-            echo json_encode(
-                [
-                    'result' => 'error',
-                    'timestampUTC' => gmdate("Y-m-d H:i:s"),
-                    'serverResponseTimeMs' => self::responseTime(),
-                    'data' => $data
-                ],
-                JSON_PRETTY_PRINT
-            );
+            echo json_encode($reponseArray, JSON_PRETTY_PRINT);
         } else {
-            // We'll add the XML output here
             $xml_data = new \SimpleXMLElement('<?xml version="1.0"?><data></data>');
-            General::arrayToXml(
-                [
-                    'result' => 'error',
-                    'timestampUTC' => gmdate("Y-m-d H:i:s"),
-                    'serverResponseTimeMs' => self::responseTime(),
-                    'data' => $data
-                ],
-                $xml_data
-            );
+            General::arrayToXml($reponseArray, $xml_data);
             echo $xml_data->asXML();
         }
-        self::logRequest();
-        die();
+
+        // Exit after handling error
+        exit;
     }
-    public static function success(string|array $data) : mixed
+    public static function success(string|array $data, int $status_code = 200) : string
     {
         $response = self::responseType();
         header('Content-Type: application/' . $response);
-        self::logRequest();
+        http_response_code($status_code);
+        self::logRequest($status_code);
         if ($response === 'json') {
             return json_encode(
                 [
@@ -71,32 +73,28 @@ class Output
             return $xml_data->asXML();
         }
     }
-    public static function responseTime()
+    public static function responseTime() : float
     {
         return round((microtime(true) - START_TIME) * 1000);
     }
     public static function responseType() : string
     {
+        $type = 'json';
         if (!isset($_SERVER['HTTP_ACCEPT'])) {
-            return 'json';
-        } else {
-            if ($_SERVER['HTTP_ACCEPT'] === 'application/json') {
-                return 'json';
-            } elseif ($_SERVER['HTTP_ACCEPT'] === 'application/xml') {
-                return 'xml';
-            } else {
-                return 'json';
-            }
+            return $type;
         }
+        if ($_SERVER['HTTP_ACCEPT'] === 'application/xml') {
+            $type = 'xml';
+        }
+        return $type;
     }
-    public static function logRequest()
+    public static function logRequest($status)
     {
         $apiChecks = new \Controllers\ApiChecks();
         $apiKey = $apiChecks->apiKeyHeaderGet();
         $ip = General::currentIP();
         $browser = General::currentBrowser();
         $method = $_SERVER['REQUEST_METHOD'];
-        $status = http_response_code();
         $queryString = $_SERVER['QUERY_STRING'];
         $path = strtok($_SERVER['REQUEST_URI'], '?');
 

@@ -39,11 +39,11 @@ class ApiKey
             Output::error($e->getMessage(), $e->getCode());
         }
     }
-    public function delete(int $id) : bool
+    public function delete(int|string $apiKey) : bool
     {
         $apiKeyModel = new ModelsApiKey();
         try {
-            return (bool) $apiKeyModel->delete($id) ? true : false;
+            return (bool) $apiKeyModel->delete($apiKey) ? true : false;
         } catch (\Exception $e) {
             Output::error($e->getMessage(), $e->getCode());
         }

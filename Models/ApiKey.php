@@ -166,20 +166,21 @@ class ApiKey
         return $stmt->rowCount();
     }
     /**
-     * Delete an api key by its id
+     * Delete an api key by its id or api key
      *
-     * @param string $apiKey
-     * @return bool
+     * @param string|int $apiKey The api key or id to delete
+     * @return int
      */
-    public function delete(int $id) : int
+    public function delete(string|int $apiKey) : int
     {
+        $column = is_int($apiKey) ? 'id' : 'api_key';
         $db = new DB();
         $pdo = $db->getConnection();
         // Let's build the query
-        $query = "DELETE FROM `api_keys` WHERE `id`=?";
+        $query = "DELETE FROM `api_keys` WHERE `$column`=?";
         $stmt = $pdo->prepare($query);
         try {
-            $stmt->execute([$id]);
+            $stmt->execute([$apiKey]);
         } catch (\PDOException $e) {
             if (ini_get('display_errors') === '1') {
                 throw (new ApiKeyException())->genericError($e->getMessage(), 500);
