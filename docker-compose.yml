@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/php.ini:/usr/local/etc/php/php.ini
+      # Add other configuration files as needed
+      - ./public:/var/www/html/public
+    # other configurations for nginx service
+
+  php:
+    build: .
+    volumes:
+      - ./config/php.ini:/usr/local/etc/php/php.ini
+      # Add other configuration files as needed
+      - ./public:/var/www/html/public
+    # other configurations for php-fpm service
+
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:

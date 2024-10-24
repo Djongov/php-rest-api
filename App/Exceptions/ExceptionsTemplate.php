@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace App\Exceptions;
 
@@ -10,6 +8,7 @@ class ExceptionsTemplate extends \Exception implements ExceptionInterface
     {
         return new self($message, $code);
     }
+    /* API onness */
     public function emptyData() : self
     {
         return new self('no data provided', 400);
@@ -33,5 +32,9 @@ class ExceptionsTemplate extends \Exception implements ExceptionInterface
     public function parameterNoBool($paramter) : self
     {
         return new self($paramter . ' is not a boolean', 400);
+    }
+    public function notSaved() : self
+    {
+        return new self('data not saved', 500);
     }
 }

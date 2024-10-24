@@ -1,6 +1,7 @@
 <Files ~ "^\.(htaccess|htpasswd)$">
-Deny from all
+    Deny from all
 </Files>
+
 DirectoryIndex index.php index.html
 
 <IfModule mod_negotiation.c>
@@ -10,11 +11,15 @@ DirectoryIndex index.php index.html
 AddType image/webp .webp
 
 <FilesMatch "\.(webp)$">
-  Header set Cache-Control "max-age=31536000, public"
+    Header set Cache-Control "max-age=31536000, public"
 </FilesMatch>
 
-
 RewriteEngine On
+
+# Add the rewrite rule for create-env
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^create-env$ create-env.php [L]
 
 RewriteCond %{HTTP_ACCEPT} image/webp
 RewriteCond %{DOCUMENT_ROOT}/$1.webp -f
@@ -25,9 +30,6 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !\.(jpg|jpeg|png|gif|webp)$ [NC]
 RewriteRule ^.*$ index.php [L]
-
-# Rewrite /docs to /docs
-RewriteRule ^documentation/(.*)$ /docs/$1 [R=301,L]
 
 <Files "Dockerfile|docker-compose\.yml">  
     Order Allow,Deny
@@ -41,8 +43,20 @@ Header always set X-Frame-Options "DENY"
 Header always set X-Xss-Protection "0"
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
-#Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-Header always set Permissions-Policy "display-capture=(),accelerometer=(),autoplay=(),camera=(),display-capture=(),encrypted-media=(),fullscreen=(),geolocation=(),gyroscope=(),magnetometer=(),microphone=(),midi=(),payment=(),picture-in-picture=(),publickey-credentials-get=(),screen-wake-lock=(),sync-xhr=(self),usb=(),web-share=(),xr-spatial-tracking=()"
+
+# Apply HSTS header only for HTTPS
+RewriteCond %{HTTPS} on
+Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" env=HTTPS
+
+# Apply CSP header only for HTTPS and non-resource types
+RewriteCond %{HTTPS} on
+RewriteCond %{REQUEST_URI} !\.(gif|jpg|jpeg|png|svg|ico)$ [NC]
+RewriteCond %{REQUEST_URI} !\.css$ [NC]
+RewriteCond %{REQUEST_URI} !\.js$ [NC]
+RewriteCond %{REQUEST_URI} !\.(woff|woff2|ttf|otf|eot)$ [NC]
+Header always set Content-Security-Policy "upgrade-insecure-requests; default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.tiny.cloud/; script-src 'self' https://cdn.tiny.cloud/1/ https://cdn.tailwindcss.com/ https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js 'nonce-1nL1n3JsRuN1192kwoko2k323WKE'; img-src 'self' https://sp.tinymce.com/ https://ui-avatars.com/api/ https://lh3.googleusercontent.com/ https://quickchart.io/; frame-ancestors 'none'; frame-src 'none'; child-src 'none'; connect-src 'self' https://cdn.tiny.cloud/; base-uri 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; worker-src 'none'; report-uri /api/csp-report; report-to csp-endpoint;" env=HTTPS
+
+Header always set Permissions-Policy "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()"
 Header always set X-Permitted-Cross-Domain-Policies "none"
 Header always set Cross-Origin-Embedder-Policy "unsafe-none"
 Header always set Cross-Origin-Opener-Policy "same-origin"
@@ -50,5 +64,4 @@ Header always set Cross-Origin-Resource-Policy "cross-origin"
 #Header always set Access-Control-Allow-Origin "http://localhost:3000, https://portal.azure.com/"
 #Header always set Access-Control-Allow-Methods "GET,PUT,POST,DELETE,OPTIONS"
 #Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, X-API-KEY, privatekey"
-#Header always set Report-To "{&#34;group&#34;:&#34;csp-endpoint&#34;,&#34;max_age&#34;:10886400,&#34;endpoints&#34;:[{&#34;url&#34;:&#34;/csp-report&#34;}]}"
-Header always set Content-Security-Policy "upgrade-insecure-requests;default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self' https://cdn.tailwindcss.com/ https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js 'nonce-1nL1n3JsRuN1192kwoko2k323WKE';img-src 'self' https://ui-avatars.com/api/ https://lh3.googleusercontent.com/ https://quickchart.io/;report-uri /csp-report;"
+Header always set Report-To "{&#34;group&#34;:&#34;csp-endpoint&#34;,&#34;max_age&#34;:10886400,&#34;endpoints&#34;:[{&#34;url&#34;:&#34;/api/csp-report&#34;}]}"

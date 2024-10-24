@@ -1,8 +1,11 @@
-<?php
+<?php declare(strict_types=1);
+/* Not supposed to be used */
+
+declare(strict_types=1);
 
 namespace App\Database;
 
-use Controllers\Output;
+use Api\Response;
 use Exception;
 
 class MYSQL
@@ -13,37 +16,38 @@ class MYSQL
         $conn = mysqli_init();
 
         if (defined("DB_SSL") && DB_SSL) {
-            mysqli_ssl_set($conn, null, null, CA_CERT, null, null);
+            mysqli_ssl_set($conn, null, null, DB_CA_CERT, null, null);
             try {
-                $conn->real_connect('p:' . DB_HOST, DB_USER, DB_PASS, DB_NAME, 3306, MYSQLI_CLIENT_SSL);
+                $conn->real_connect('p:' . DB_HOST, DB_USER, DB_PASS, DB_NAME, 3306, DB_SSL);
             } catch (\mysqli_sql_exception $e) {
-                if (ini_get('display_errors') === '1') {
-                   Output::error($e->getMessage(), 400);
+                if (str_contains($e->getMessage(), "Unknown database") !== false) {
+                    Response::output('Database "' . DB_NAME . '" does not exist, you need to go through the /install endpoint' . $_SERVER['REQUEST_URI'], 400);
                 } else {
-                    Output::error('Database connection error', 400);
+                    Response::output($e->getMessage(), 400);
                 }
             }
         } else {
             try {
                 $conn->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
             } catch (\mysqli_sql_exception $e) {
-                if (ini_get('display_errors') === '1') {
-                    Output::error($e->getMessage(), 400);
+                if (str_contains($e->getMessage(), "Unknown database") !== false) {
+                    Response::output('Database "' . DB_NAME . '" does not exist, you need to go through the /install endpoint', 400);
                 } else {
-                    Output::error('Database connection error', 400);
+                    Response::output($e->getMessage(), 400);
                 }
             }
         }
+
         return $conn;
     }
 
-    public static function query(string $query) : mixed
+    public static function query($query)
     {
         $link = self::connect();
         try {
             $stmt = $link->prepare($query);
         } catch (\mysqli_sql_exception $e) {
-            Output::error($e->getMessage(), 400);
+            Response::output($e->getMessage(), 400);
         }
         $result = false;
         try {
@@ -54,7 +58,7 @@ class MYSQL
                 $result = $stmt;
             }
         } catch (\mysqli_sql_exception $e) {
-            Output::error($e->getMessage(), 400);
+            Response::output($e->getMessage(), 400);
         }
 
         $link->close();
@@ -62,13 +66,13 @@ class MYSQL
     }
 
     // Prepared query, statement needs to be passed as array [] as in [$value1, $value2], returns a result
-    public static function queryPrepared(string $query, string|array $statement) : mixed
+    public static function queryPrepared($query, $statement)
     {
         $link = self::connect();
         try {
             $stmt = $link->prepare($query);
         } catch (Exception $e) {
-            Output::error($e->getMessage(), 400);
+            Response::output($e->getMessage(), 400);
         }
         if (is_array($statement)) {
             $statementParams = '';
@@ -85,42 +89,42 @@ class MYSQL
         }
         try {
             if ($stmt->execute()) {
-                if (stripos($query, "SELECT") !== false) {
-                    $result = $stmt->get_result();
-                    $link->close();
-                    return $result;
-                } else {
-                    $link->close();
-                    return $stmt;
-                }
-            } else {
-                $error = $stmt->error;
-                // Debugging statement 3: Print the error message
-                echo "Debug MySQL Error: $error\n";
-                $link->close();
-                Output::error($error, 400);
-            }
+        if (stripos($query, "SELECT") !== false) {
+            $result = $stmt->get_result();
+            $link->close();
+            return $result;
+        } else {
+            $link->close();
+            return $stmt;
+        }
+    } else {
+        $error = $stmt->error;
+        // Debugging statement 3: Print the error message
+        echo "Debug MySQL Error: $error\n";
+        $link->close();
+        Response::output($error, 400);
+    }
         } catch (Exception $e) {
             $link->close();
-            Output::error($e->getMessage(), 400);
+            Response::output($e->getMessage(), 400);
         }
     }
     // Sometimes you may need to make a bundle of queries one after the other, returns a result
-    public static function multiQuery(array $arrayOfQueries) : mixed
+    public static function multiQuery($arrayOfQueries)
     {
         $link = self::connect();
         foreach ($arrayOfQueries as $sql) {
             try {
                 $result = mysqli_query($link, $sql);
             } catch (Exception $e) {
-                Output::error($e->getMessage(), 400);
+                Response::output($e->getMessage(), 400);
             }
         }
         $link->close();
         return $result;
     }
     // This would apply mysqli_real_escape_string to an entire assoc array
-    public static function mysqliEscapeAssoc(array $array) : array
+    public static function mysqliEscapeAssoc($array)
     {
         $link = self::connect();
         foreach ($array as $column => $value) {
@@ -130,7 +134,7 @@ class MYSQL
         return $array;
     }
     // This would apply mysqli_real_escape_string to a string
-    public static function mysqliEscapeString(string $string) : string
+    public static function mysqliEscapeString($string)
     {
         $link = self::connect();
         // mysqli_real_escape_string does not accept nulls
@@ -141,7 +145,7 @@ class MYSQL
         }
     }
     // This method will check if the columns in the array match the columns in the database
-    public static function checkDBColumns(array $array, string $table) : void
+    public static function checkDBColumns(array $array, string $table)
     {
         $columns = self::query("SHOW COLUMNS FROM `$table`");
         $columns = $columns->fetch_all(MYSQLI_ASSOC);
@@ -149,11 +153,11 @@ class MYSQL
         // Check if all keys in $reports_array match the columns
         foreach ($array as $key => $value) {
             if (!array_key_exists($key, $columns)) {
-                Output::error("Column '$key' does not exist in table '$table'", 400);
+                Response::output("Column '$key' does not exist in table '$table'", 400);
             }
         }
     }
-    public static function describe(string $table) : array
+    public static function describe(string $table)
     {
         $query = "DESCRIBE `$table`";
         $result = self::query($query);
@@ -167,8 +171,7 @@ class MYSQL
         return $resultArray;
     }
     // This is used in the get-records datagrid API to present the data in the correct input type
-    public static function mapDataTypesArray(string $value)
-    {
+    public static function mapDataTypesArray(string $value) {
         if (str_starts_with($value, 'tinyint')) {
             return 'bool';
         }
@@ -203,14 +206,14 @@ class MYSQL
             }
             if (!array_key_exists($key, $dbColumns)) {
                 // Column does not exist in the database
-                Output::error("Column '$key' does not exist in table '$table", 400);
+                Response::output("Column '$key' does not exist in table '$table");
             } else {
                 // Column exists, check data type
                 $expectedType = self::normalizeDataType($dbColumns[$key]);
                 $actualType = self::normalizeDataType(gettype($value));
 
                 if (self::checkDataType($expectedType, $actualType)) {
-                    Output::error("Column '$key' in table '$table' has incorrect data type. Expected '$expectedType', got '$actualType'", 400);
+                    Response::output("Column '$key' in table '$table' has incorrect data type. Expected '$expectedType', got '$actualType'");
                 }
             }
         }

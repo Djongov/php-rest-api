@@ -6,3 +6,12 @@ node_modules
 
 # Composer
 /vendor
+composer.lock
+
+# Ignore all files in the profile directory
+/public/assets/images/profile/*
+
+# But not the directory itself
+!/public/assets/images/profile/dummy.jpg
+
+.tools/*.db
