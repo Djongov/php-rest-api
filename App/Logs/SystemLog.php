@@ -3,12 +3,13 @@
 namespace App\Logs;
 
 use App\Database\DB;
+use Api\Checks;
 
 class SystemLog
 {
     public static function write($message, $category) : void
     {
-        $username = 'Dummy';
+        $username = getApiKeyFromHeaders();
         $db = new DB();
         $pdo = $db->getConnection();
         $stmt = $pdo->prepare("INSERT INTO system_log (text, client_ip, user_agent, created_by, category, uri, method) VALUES (?, ?, ?, ?, ?, ?, ?)");

@@ -48,20 +48,16 @@ class DB
             $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         } catch (\PDOException $e) {
             if (ERROR_VERBOSE) {
-                throw new \PDOException("DB: PDO connection failed: " . $e->getMessage());
+                Response::output($e->getMessage(), 500);
             } else {
                 Response::output('Database connection failed', 500);
             }
-            error_log("DB: PDO connection failed: " . $e->getMessage());
-            throw $e;
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                throw new \PDOException("DB: PDO connection failed: " . $e->getMessage());
+                Response::output($e->getMessage(), 500);
             } else {
                 Response::output('Database connection failed', 500);
             }
-            error_log("DB: PDO connection failed: " . $e->getMessage());
-            throw $e;
         }
     }
     
@@ -245,7 +241,11 @@ class DB
         // First check if all columns exist in the database
         foreach ($array as $column => $data) {
             if (!array_key_exists($column, $dbTableArray)) {
-                throw new \Exception("Column '$column' does not exist in table '$table'");
+                if (ERROR_VERBOSE) {
+                    throw new \Exception("Column '$column' does not exist in table '$table'");
+                } else {
+                    throw new \Exception("unknown parameter '$column'");
+                }
             }
 
             // Now let's check the data types
@@ -274,7 +274,11 @@ class DB
 
             // Compare the data types
             if ($dataType !== $expectedType) {
-                throw new \Exception("Data type mismatch for column '$column'. Expected '$expectedType', got '$dataType'");
+                if (ERROR_VERBOSE) {
+                    throw new \Exception("Data type mismatch for column '$column'. Expected '$expectedType', got '$dataType'");
+                } else {
+                    throw new \Exception("Data type mismatch for '$column'");
+                }
             }
         }
     }

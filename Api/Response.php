@@ -67,6 +67,10 @@ class Response
     }
     public static function output(mixed $data, int $statusCode = 200) : string
     {
+        if ($statusCode === 204) {
+            http_response_code(204);
+            exit();
+        }
         $contentType = self::decideContentType();
         header('Content-Type: ' . $contentType);
         http_response_code($statusCode);

@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-// Path: Models/Api/Firewall.php
+// Path: Models/Firewall.php
 
-// Called in /Controllers/Api/Firewall.php
+// Called in /Controllers/Firewall.php
 
 // Responsible for handling the firewall table in the database CRUD operations
 
@@ -50,13 +50,26 @@ class Firewall
      * @return     array returns the IP data as an associative array and if no parameter is provided, returns fetch_all
      * @throws     FirewallException, IPDoesNotExist, InvalidIP from formatIp
      */
-    public function get(string|int $param) : array
+    public function get(string|int $param = null, ?string $sort = null, ?int $limit = null, ?string $orderBy = null) : array
     {
         $db = new DB();
         $pdo = $db->getConnection();
         // if the parameter is empty, we assume we want all the IPs
-        if (empty($param)) {
-            $stmt = $pdo->query("SELECT * FROM $this->table");
+        if (!$param) {
+            $query = "SELECT * FROM $this->table";
+            // If limit is set, we will limit the results
+            if ($orderBy === null) {
+                $query .= " ORDER BY $orderBy";
+            } else {
+                $query .= " ORDER BY $orderBy $sort";
+            }
+            if ($sort === null) {
+                $query .= " ASC";
+            }
+            if ($limit) {
+                $query .= " LIMIT $limit";
+            }
+            $stmt = $pdo->query($query);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
         // If the parameter is an integer, we assume it's an ID
@@ -64,7 +77,7 @@ class Firewall
             if (!$this->exists($param)) {
                 throw (new FirewallException())->ipDoesNotExist();
             }
-            $stmt = $pdo->prepare("SELECT * FROM $this->table WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT * FROM $this->table WHERE id = ? ");
             $stmt->execute([$param]);
             return $stmt->fetch(\PDO::FETCH_ASSOC);
         } else {
@@ -86,11 +99,11 @@ class Firewall
      * @param      string $ip the ip in optional CIDR notation
      * @param      string $createdBy the user who creates the IP
      * @param      string $comment optional comment for the IP
-     * @return     bool
+     * @return     string|int the last inserted id (string or int)
      * @throws     FirewallException ipAlreadyExists, notSaved, InvalidIP from formatIp
      * @system_log       IP added to the firewall table, by who and under which id
      */
-    public function save(string $ip, string $createdBy, string $comment = '') : bool
+    public function add(string $ip, string $createdBy, ?string $comment) : string | int
     {
         // Format the IP
         $ip = $this->formatIp($ip);
@@ -102,11 +115,12 @@ class Firewall
         $pdo = $db->getConnection();
         $stmt = $pdo->prepare("INSERT INTO $this->table ($this->mainColumn, created_by, comment) VALUES (?,?,?)");
         $stmt->execute([$ip, $createdBy, $comment]);
-        if ($stmt->rowCount() === 1) {
-            SystemLog::write('IP ' . $ip . ' added to the firewall table by ' . $createdBy . ' under the id ' . $pdo->lastInsertId(), 'Firewall');
-            return true;
+        // Let's check if lastid is not 0
+        if ($pdo->lastInsertId() !== 0) {
+            SystemLog::write('IP ' . $ip . ' added to the firewall table by ' . $createdBy . ' under id ' . $pdo->lastInsertId(), 'Firewall');
+            return $pdo->lastInsertId();
         } else {
-            throw (new FirewallException())->notSaved('IP not saved');
+            throw (new FirewallException())->notSaved('IP ' . $ip . ' not saved');
         }
     }
     /**
@@ -120,42 +134,45 @@ class Firewall
      * @throws     FirewallException ipDoesNotExist
      * @system_log IP updated and by who and what data was passed
      */
-    public function update(array $data, int $id, string $updatedBy) : bool
+    public function update(array $data, int $id) : bool
     {
         $db = new DB();
         // Check if the data matches the columns
+
+        // Every table has a last_updated_by column. Let's add it to the update
+        $apikey = getApiKeyFromHeaders();
+        if (!$apikey) {
+            throw (new FirewallException())->missingApiKey();
+        }
+        
+        $data['last_updated_by'] = $apikey;
 
         $db->checkDBColumnsAndTypes($data, $this->table);
 
         if (!$this->exists($id)) {
             throw (new FirewallException())->ipDoesNotExist();
         }
-        // Check if data is correct
-        $sql = "UPDATE $this->table SET ";
-        $updates = [];
-        // Check if all keys in $array match the columns
-        foreach ($data as $key => $value) {
-            // Add the column to be updated to the SET clause
-            $updates[] = "$key = ?";
+
+        $fields = '';
+        $values = [];
+        foreach ($data as $column => $value) {
+            $fields .= "$column = ?, ";
+            $values[] = $value;
         }
-        // Combine the SET clauses with commas
-        $sql .= implode(', ', $updates);
+        $fields = rtrim($fields, ', ');
 
-        // Add a WHERE clause to specify which organization to update
-        $sql .= " WHERE id = ?";
+        $values[] = $id; // Add the ID to the values array for the WHERE clause
 
-        // Prepare and execute the query using queryPrepared
-        $values = array_values($data);
-        $values[] = $id; // Add the id for the WHERE clause
         $pdo = $db->getConnection();
-        $stmt = $pdo->prepare($sql);
+        $stmt = $pdo->prepare("UPDATE $this->table SET $fields WHERE id = ?");
         $stmt->execute($values);
 
-        if ($stmt->rowCount() === 1) {
-            SystemLog::write('IP with id ' . $id . ' updated by ' . $updatedBy . ' with data ' . json_encode($data), 'Firewall');
+        // Check if any rows were affected
+        if ($stmt->rowCount() > 0) {
+            SystemLog::write('IP with id ' . $id . ' updated with data ' . json_encode($data), 'Firewall');
             return true;
         } else {
-            throw (new FirewallException())->notSaved('IP not saved');
+            return false;
         }
     }
     /**
@@ -232,5 +249,11 @@ class Firewall
             $mask = $ipExplode[1];
         }
         return $ip . '/' . $mask;
+    }
+    // get columns from the table
+    public function getColumns() : array
+    {
+        $db = new DB();
+        return $db->describe($this->table);
     }
 }

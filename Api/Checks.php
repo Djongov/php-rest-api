@@ -22,16 +22,23 @@ class Checks
     // Api Keys check
     public function getApiKey() : string
     {
-        $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? null;
-        if ($apiKey === null) {
+        $apiKey = getApiKeyFromHeaders();
+        if (!$apiKey) {
             Response::output('missing API key', 401);
         }
         $apiKeyModel = new ApiKey();
         $check = $apiKeyModel->exists($apiKey);
-        var_dump($check);
         if (!$check) {
             Response::output('invalid API key', 401);
         }
         return $apiKey;
+    }
+    // Check GET sorting and filtering parameters
+    public function getGetSortingAndFilteringParams(): array
+    {
+        $sort = (isset($_GET['sort'])) ? $_GET['sort'] : null;
+        $limit = (isset($_GET['limit']) && is_numeric($_GET['limit'])) ? (int) $_GET['limit'] : null;
+        $orderBy = (isset($_GET['orderBy'])) ? $_GET['orderBy'] : null;
+        return [$sort, $limit, $orderBy];
     }
 }

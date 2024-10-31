@@ -11,25 +11,22 @@ use Controllers\Firewall;
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // This endpoint is for creating a new local user. Cloud users are create in /auth-verify
 
-    // We only allow either an empty GET or a GET with a "cidr" parameter
-    if (!empty($_GET) && !isset($_GET['cidr'])) {
-        Response::output('parameters accepted are "cidr" or empty GET', 400);
-    }
-
     $checks = new Checks();
 
-    //$checks->getApiKey();
+    // Let's check if API key is present
+    $checks->getApiKey();
 
-    // check if cidr has been passed
-    if (!isset($_GET['cidr'])) {
-        $ip = '';
-    } else {
-        $ip = $_GET['cidr'];
-    }
+    // check if cidr has been passed, if not pass empty string (not null)
+    $ip = $_GET['cidr'] ?? null;
 
     $firewall = new Firewall();
 
-    echo $firewall->get($ip);
+    // Let's see if we have any optional sorting and filtering parameters
+    $optionalParams = $checks->getGetSortingAndFilteringParams();
+
+    $response = $firewall->get($ip, ...$optionalParams);
+
+    Response::output($response['data'] ?? $response['error'], (int) $response['status']);
 }
 
 // api/firewall POST, accepts form data with the "cidr" parameter and optional "comment". The user making the request is taken from the router data
@@ -37,28 +34,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $checks = new Checks();
 
-    $apiKey = ''; // $checks->getApiKey();
-
+    // Let's check if API key is present
+    $apiKey = $checks->getApiKey();
+    // Let's catch php input stream as we expect json
     $data = (new Input())->getJsonInput();
 
     $checks->checkParams(['cidr'], $data);
 
-    $comment = $data['comment'] ?? '';
+    $comment = $data['comment'] ?? null;
 
     $ip = $data['cidr'];
 
     $firewall = new Firewall();
 
-    echo $firewall->add($ip, $apiKey, $comment);
+    $response = $firewall->add($data);
+
+    Response::output($response['data'] ?? $response['error'], (int) $response['status']);
 }
 
-// api/firewall/{id} PUT, accepts json body wit the data to update, id in the path. The user making the request is taken from the router data
-if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-    // Check if content type is json
-    if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
-        Response::output('content type must be application/json', 400);
-        exit();
-    }
+// api/firewall/{id} PATCH, accepts json body wit the data to update, id in the path. The user making the request is taken from the router data
+if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+
+    $checks = new Checks();
 
     $apiKey = $checks->getApiKey();
 
@@ -68,42 +65,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     // Also the router info should bring us the id
     if (!isset($routeInfo[2]['id'])) {
         Response::output('missing id paramter', 400);
-        exit();
     }
 
-    $id = $routeInfo[2]['id'];
+    $id = (int) $routeInfo[2]['id'];
 
     $update = new Firewall();
 
-    echo $update->update($data, $id, $apiKey);
+    $response = $update->update($data, $id, $apiKey);
+
+    Response::output($response['data'] ?? $response['error'], (int) $response['status']);
 }
 
-// api/firewall/{id}?csrf_token={} DELETE, empty body, param in path, csrf token in query string. The user making the request is taken from the router data
+// api/firewall/{id} DELETE, empty body, param in path
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     // Check if body is empty
     if ($_SERVER['CONTENT_LENGTH'] > 0) {
         Response::output('body must be empty in DELETE requests', 400);
-        exit();
-    }
-    // Let's check if the csrf token is passed as a query string in the DELETE request
-    if (!isset($_GET['csrf_token'])) {
-        Response::output('missing csrf token', 401);
-        exit();
     }
 
     // Also the router info should bring us the id
     if (!isset($routeInfo[2]['id'])) {
         Response::output('missing id parameter', 400);
-        exit();
     }
 
     $checks = new Checks();
 
     $apiKey = $checks->getApiKey();
 
-    $id = $routeInfo[2]['id'];
+    $id = (int) $routeInfo[2]['id'];
 
     $delete = new Firewall();
 
-    echo $delete->delete($id, $apiKey);
+    $response = $delete->delete($id, $apiKey);
+
+    if ($response['status'] === 204) {
+        Response::output('', 204);
+    } else {
+        Response::output($response['data'] ?? $response['error'], (int) $response['status']);
+    }
 }
