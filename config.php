@@ -12,6 +12,8 @@ $version = explode('=', $version)[1];
 
 define('APP_NAME', 'PHP REST API');
 
+define('API_KEY_NAME', 'X-API-KEY');
+
 define('SYSTEM_USER_AGENT', APP_NAME . '/' . $version . ' (+https://' . $_SERVER['HTTP_HOST'] . ')');
 
 // Do a check here if .env file exists

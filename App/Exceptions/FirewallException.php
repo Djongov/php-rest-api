@@ -24,4 +24,8 @@ class FirewallException extends TemplateException
     {
         return new self('invalid IP', 400);
     }
+    public function missingApiKey() : self
+    {
+        return new self('missing Api Key', 401);
+    }
 }

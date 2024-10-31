@@ -28,3 +28,18 @@ function currentUrl()
 {
     return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 }
+function getApiKeyFromHeaders() {
+    $headers = getallheaders();
+    
+    // Convert the headers array keys to lowercase for case-insensitive search
+    $headers = array_change_key_case($headers, CASE_LOWER);
+    
+    // Check for the API key in lowercase
+    $apiKeyHeader = strtolower(API_KEY_NAME);
+    
+    if (isset($headers[$apiKeyHeader])) {
+        return $headers[$apiKeyHeader];
+    } else {
+        return null; // or handle missing API key appropriately
+    }
+}
