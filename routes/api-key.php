@@ -3,36 +3,48 @@
 use Api\Response;
 use Api\Checks;
 use Api\Input;
-use Controllers\Firewall;
+use Controllers\ApiKey;
 use Controllers\HttpHandler;
 
 // This is the API view for the firewall. It allows to add, update, delete and get IPs from the firewall
 
-// api/firewall GET, accepts a "cidr" parameter in the query string. If no query string provided, returns all IPs in the firewall table.
+// api/firewall GET, accepts a "api-key" parameter in the query string. If no query string provided, returns all IPs in the firewall table.
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // This endpoint is for creating a new local user. Cloud users are create in /auth-verify
+    // $mainParam = 'api-key';
+    // // This endpoint is for creating a new local user. Cloud users are create in /auth-verify
 
     // $checks = new Checks();
 
     // // Let's check if API key is present
     // $checks->getApiKey();
 
-    // // check if cidr has been passed, if not pass empty string (not null)
-    // $ip = $_GET['cidr'] ?? null;
+    // // check if api-key has been passed, if not pass empty string (not null)
+    // if (!$_GET) {
+    //     $paramValue = null;
+    // } elseif (isset($_GET[$mainParam])) {
+    //     if (!$_GET[$mainParam]) {
+    //         Response::output($mainParam . ' parameter cannot be empty', 400);
+    //     }
+    //     $paramValue = $_GET[$mainParam];
+    // } else {
+    //     Response::output('missing ' . $mainParam . ' parameter', 400);
+    // }
 
-    // $firewall = new Firewall();
+    // $controllerClass = new ApiKey();
 
     // // Let's see if we have any optional sorting and filtering parameters
     // $optionalParams = $checks->getGetSortingAndFilteringParams();
 
-    // $response = $firewall->get($ip, ...$optionalParams);
+    // $response = $controllerClass->get($paramValue, ...$optionalParams);
 
     // Response::output($response['data'] ?? $response['error'], (int) $response['status']);
 
-    HttpHandler::handleGetRequestWithParam('ip_cidr', 'Controllers\Firewall');
+    $id = $routeInfo[2]['id'] ?? null;
+
+    HttpHandler::handleGetRequestWithPath($id, 'Controllers\ApiKey');
 }
 
-// api/firewall POST, accepts form data with the "cidr" parameter and optional "comment". The user making the request is taken from the router data
+// api/firewall POST, accepts form data with the "api-key" parameter and optional "comment". The user making the request is taken from the router data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $checks = new Checks();
@@ -42,15 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Let's catch php input stream as we expect json
     $data = (new Input())->getJsonInput();
 
-    $checks->checkParams(['cidr'], $data);
+    $checks->checkParams(['access', 'note'], $data);
 
-    $comment = $data['comment'] ?? null;
+    $addController = new ApiKey();
 
-    $ip = $data['cidr'];
-
-    $firewall = new Firewall();
-
-    $response = $firewall->add($data);
+    $response = $addController->add($data);
 
     Response::output($response['data'] ?? $response['error'], (int) $response['status']);
 }
@@ -72,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
 
     $id = (int) $routeInfo[2]['id'];
 
-    $update = new Firewall();
+    $update = new ApiKey();
 
     $response = $update->update($data, $id, $apiKey);
 
@@ -97,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 
     $id = (int) $routeInfo[2]['id'];
 
-    $delete = new Firewall();
+    $delete = new ApiKey();
 
     $response = $delete->delete($id, $apiKey);
 

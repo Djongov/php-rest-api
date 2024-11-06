@@ -29,7 +29,7 @@ class Checks
         $apiKeyModel = new ApiKey();
         $check = $apiKeyModel->exists($apiKey);
         if (!$check) {
-            Response::output('invalid API key', 401);
+            Response::output('invalid API key. Got:' . $apiKey, 401);
         }
         return $apiKey;
     }
@@ -39,6 +39,22 @@ class Checks
         $sort = (isset($_GET['sort'])) ? $_GET['sort'] : null;
         $limit = (isset($_GET['limit']) && is_numeric($_GET['limit'])) ? (int) $_GET['limit'] : null;
         $orderBy = (isset($_GET['orderBy'])) ? $_GET['orderBy'] : null;
-        return [$sort, $limit, $orderBy];
+        return [
+            'sort' => $sort,
+            'limit' => $limit,
+            'orderBy' => $orderBy
+        ];
+    }
+    // Check if sorting and filtering parameters are present and return what is present
+    public function checkGetSortingAndFilteringParams() : array
+    {
+        $array = $this->getGetSortingAndFilteringParams();
+
+        // Remove nulls
+        $array = array_filter($array, function ($value) {
+            return $value !== null;
+        });
+        return $array;
+
     }
 }

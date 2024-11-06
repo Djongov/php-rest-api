@@ -8,12 +8,12 @@
 
 namespace Controllers;
 
-use Models\Firewall as FirewallModel;
+use Models\ApiKey as ApiKeyModel;
 use App\Exceptions\FirewallException;
 
-class Firewall
+class ApiKey
 {
-    public string $table = 'firewall';
+    public string $table = 'api_keys';
     /**
      * Get an IP or all IPs from the firewall table and return them as a json response
      * @category   Controller - Firewall
@@ -33,23 +33,19 @@ class Firewall
         if ($orderBy === null) {
             $orderBy = 'id';
         } else {
-            if (!in_array($orderBy, (new FirewallModel())->getColumns($this->table))) {
+            if (!in_array($orderBy, (new ApiKeyModel())->getColumns($this->table))) {
                 return ['error' => 'Invalid orderBy value', 'status' => 400];
             }
         }
-        $firewall = new FirewallModel();
+        $firewall = new ApiKeyModel();
         $response = [];
-        // This now allows ids to be passed as well
-        if (is_numeric($ip)) {
-            $ip = (int) $ip;
-        }
         try {
             $response = ['data' => $firewall->get($ip, $sort, $limit, $orderBy), 'status' => 200];
         } catch (FirewallException $e) {
-            $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
+            $response = ['error' => $e->getMessage(), 'status' => 400];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
+                $response = ['error' => $e->getMessage(), 'status' => 400];
             } else {
                 $response = ['error' => 'An unexpected error occurred', 'status' => 500];
             }
@@ -70,14 +66,14 @@ class Firewall
     {
         $response = [];
         // Filter for invalid parameters
-        $createAcceptedParams = ['cidr', 'createdBy', 'comment'];
+        $createAcceptedParams = ['access', 'createdBy', 'note'];
         foreach ($data as $key => $value) {
             if (!in_array($key, $createAcceptedParams)) {
                 return ['error' => 'Invalid parameter ' . $key, 'status' => 400];
             }
         }
         // Make sure that the required parameters are passed
-        $requiredParams = ['cidr', 'createdBy'];
+        $requiredParams = ['access', 'createdBy', 'note'];
         // Check if the required parameters are passed
         foreach ($requiredParams as $name) {
             if (!array_key_exists($name, $data)) {
@@ -88,24 +84,27 @@ class Firewall
                 return ['error' => 'parameter \'' . $name . '\' cannot be empty', 'status' =>  400];
             }
         }
-        // Make sure that the data is passed in this exact order - cidr, createdBy, comment
-        $ip = $data['cidr'];
-        $createdBy = $data['createdBy'];
-        $comment = $data['comment'] ?? null;
+        // Make sure that the data is passed in this exact order - cidr, createdBy
+        $access = $data['access'];
+        $note = $data['note'] ?? null;
 
-        $firewall = new FirewallModel();
+        $firewall = new ApiKeyModel();
         try {
-            $responseFromModel = $firewall->add($ip, $createdBy, $comment);
+            $returnData = [];
+            $responseFromModel = $firewall->add($access, $note);
+            if (is_array($responseFromModel)) {
+                $returnData = $responseFromModel;
+            }
             if ($responseFromModel) {
-                $response = ['data' => 'successfully added ip ' . $ip . ' under id ' . $responseFromModel, 'status' => 201];
+                $response = ['data' => $returnData, 'status' => 200];
             } else {
                 $response = ['error' => 'error', 'status' => 400];
             }
         } catch (FirewallException $e) {
-            $response = ['error' => $e->getMessage(), 'status' => 400];
+            $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                $response = ['error' => $e->getMessage(), 'status' => 400];
+                $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
             } else {
                 $response = ['error' => 'An unexpected error occurred', 'status' => 500];
             }
@@ -125,7 +124,7 @@ class Firewall
      */
     public function update(array $data, int $id, string $updatedBy) : array
     {
-        $firewall = new FirewallModel();
+        $firewall = new ApiKeyModel();
         $response = [];
         try {
             $update = $firewall->update($data, $id, $updatedBy);
@@ -158,7 +157,7 @@ class Firewall
     public function delete(int $id, string $deletedBy) : array
     {
         $response = [];
-        $firewall = new FirewallModel();
+        $firewall = new ApiKeyModel();
         try {
             $delete = $firewall->delete($id, $deletedBy);
             if ($delete) {
@@ -167,10 +166,10 @@ class Firewall
                 $response = ['error' => 'delete was not successful, either there was nothing to be deleted or there was an error', 'status' => 409];
             }
         } catch (FirewallException $e) {
-            $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
+            $response = ['error' => $e->getMessage(), 'status' => 400];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
+                $response = ['error' => $e->getMessage(), 'status' => 400];
             } else {
                 $response = ['error' => 'An unexpected error occurred', 'status' => 500];
             }

@@ -40,7 +40,7 @@ class Response
         $arrayToXml = function($data, $xml) use (&$arrayToXml) {
             foreach ($data as $key => $value) {
                 if (is_array($value)) {
-                    $subnode = $xml->addChild($key);
+                    $subnode = $xml->addChild((string) $key);
                     $arrayToXml($value, $subnode);
                 } else {
                     $xml->addChild("$key", htmlspecialchars("$value"));

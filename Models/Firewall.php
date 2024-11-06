@@ -11,8 +11,9 @@ namespace Models;
 use App\Database\DB;
 use App\Exceptions\FirewallException;
 use App\Logs\SystemLog;
+use Models\BasicModel;
 
-class Firewall
+class Firewall extends BasicModel
 {
     private $table = 'firewall';
     private $mainColumn = 'ip_cidr';
@@ -32,15 +33,18 @@ class Firewall
     public function exists(string|int $param) : bool
     {
         $db = new DB();
-        // If the parameter is an integer, we assume it's an ID
-        if (is_int($param)) {
-            $query = "SELECT $this->mainColumn FROM $this->table WHERE id = ?";
-        } else {
-            $query = "SELECT $this->mainColumn FROM $this->table WHERE $this->mainColumn = ?";
-        }
+
+        // Determine if we're querying by ID or column
+        $query = is_int($param)
+            ? "SELECT 1 FROM $this->table WHERE id = ? LIMIT 1"
+            : "SELECT 1 FROM $this->table WHERE $this->mainColumn = ? LIMIT 1";
+
+        // Prepare and execute the statement
         $stmt = $db->getConnection()->prepare($query);
         $stmt->execute([$param]);
-        return ($stmt->rowCount() > 0) ? true : false;
+
+        // Fetch a single row and check if it exists
+        return $stmt->fetch() !== false;
     }
     /**
      * Gets an IP from the firewall table, accepts an ID or an IP in CIDR notation. If no parameter is provided, returns all IPs
@@ -249,11 +253,5 @@ class Firewall
             $mask = $ipExplode[1];
         }
         return $ip . '/' . $mask;
-    }
-    // get columns from the table
-    public function getColumns() : array
-    {
-        $db = new DB();
-        return $db->describe($this->table);
     }
 }
