@@ -18,7 +18,7 @@ define('SYSTEM_USER_AGENT', APP_NAME . '/' . $version . ' (+https://' . $_SERVER
 
 // Do a check here if .env file exists
 if (!file_exists(dirname($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR . '.env')) {
-    die('The .env file is missing. Please create one in the root of the project or use the <a href="/create-env">helper</a>');
+    die('The .env file is missing. Please create one in the root of the project or use /migrate endpoint');
 }
 
 // Load the environment variables from the .env file which resides in the root of the project

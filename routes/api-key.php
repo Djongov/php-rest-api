@@ -80,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
 
     $id = (int) $routeInfo[2]['id'];
 
+    if (isset($data['id'])) {
+        Response::output('you cannot change an id of a resource', 409);
+    }
+
     $update = new ApiKey();
 
     $response = $update->update($data, $id, $apiKey);
