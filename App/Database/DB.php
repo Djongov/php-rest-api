@@ -26,8 +26,21 @@ class DB
             'port' => $port,
             'driver' => $driver
         ];
-
-        $this->connect($config);
+        try {
+            $this->connect($config);
+        } catch (\PDOException $e) {
+            if (ERROR_VERBOSE) {
+                Response::output($e->getMessage(), 500);
+            } else {
+                Response::output('Database connection failed', 500);
+            }
+        } catch (\Exception $e) {
+            if (ERROR_VERBOSE) {
+                Response::output($e->getMessage(), 500);
+            } else {
+                Response::output('Database connection failed', 500);
+            }
+        }
     }
 
     private function connect(array $config): void

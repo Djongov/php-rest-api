@@ -14,4 +14,6 @@ return function (RouteCollector $router) {
     $router->addRoute('POST', '/mail/send', [$routesDirectory . '/mail/send.php']);
     /* Current IP Routes */
     $router->addRoute('GET', '/ip', [$routesDirectory . '/ip.php']);
+    /* Access Log Routes */
+    $router->addRoute(['GET','DELETE'], '/access-log[/{request_id:[^/]+}]', [$routesDirectory . '/access-log.php']);
 };

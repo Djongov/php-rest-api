@@ -2,6 +2,9 @@
 
 namespace Api;
 
+use Controllers\AccessLog;
+use Api\Checks;
+
 class Response
 {
     public static string $dateFormat = 'Y-m-d H:i:s';
@@ -11,17 +14,31 @@ class Response
     {
         return round((microtime(true) - START_TIME) * 1000);
     }
+    public static function requestId() : string
+    {
+        
+        $requestId = random_bytes(16);
+        return bin2hex($requestId);
+    }
     public static function responseJson(mixed $data, int $statusCode) : string
     {
         $responseStatus = 'success';
         if ($statusCode >= 400) {
             $responseStatus = 'error';
         }
+        $requestId = self::requestId();
+        // Record the request in the access log
+        (new AccessLog())->add([
+            'request_id' => $requestId,
+            'api_key' => getApiKeyFromHeaders(),
+            'status_code' => $statusCode
+        ]);
         return json_encode(
             [
                 'result' => $responseStatus,
                 'timestampUTC' => gmdate(self::$dateFormat),
                 'serverResponseTimeMs' => self::responseTime(),
+                'requestId' => $requestId,
                 'data' => $data
             ],
             JSON_PRETTY_PRINT
@@ -52,6 +69,7 @@ class Response
             'result' => $responseStatus,
             'timestampUTC' => gmdate(self::$dateFormat),
             'serverResponseTimeMs' => self::responseTime(),
+            'requestId' => self::requestId(),
             'data' => $data
         ], $xml);
 

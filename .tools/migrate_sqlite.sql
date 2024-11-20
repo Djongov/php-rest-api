@@ -99,3 +99,17 @@ CREATE TABLE IF NOT EXISTS api_keys (
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_updated_by VARCHAR(255) DEFAULT NULL
 );
+
+CREATE TABLE IF NOT EXISTS api_access_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    request_id VARCHAR(255) NOT NULL,
+    api_key TEXT NOT NULL,
+    client_ip VARCHAR(256) NOT NULL,
+    user_agent TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    method VARCHAR(20) NOT NULL,
+    status_code INT DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated_by VARCHAR(255) DEFAULT NULL
+);

@@ -42,10 +42,10 @@ class ApiKey
         try {
             $response = ['data' => $firewall->get($ip, $sort, $limit, $orderBy), 'status' => 200];
         } catch (FirewallException $e) {
-            $response = ['error' => $e->getMessage(), 'status' => 400];
+            $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                $response = ['error' => $e->getMessage(), 'status' => 400];
+                $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
             } else {
                 $response = ['error' => 'An unexpected error occurred', 'status' => 500];
             }

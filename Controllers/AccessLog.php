@@ -8,19 +8,19 @@
 
 namespace Controllers;
 
-use Models\Firewall as FirewallModel;
-use App\Exceptions\FirewallException;
+use Models\AccessLog as AccessLogModel;
+use App\Exceptions\AccessLogException;
 
-class Firewall
+class AccessLog
 {
-    public string $table = 'firewall';
+    public string $table = 'api_access_log';
     /**
      * Get an IP or all IPs from the firewall table and return them as a json response
      * @category   Controller - Firewall
      * @author     Original Author <djongov@gamerz-bg.com>
      * @param      string $ip the ip in normal or CIDR notation. If empty, returns all IPs
      * @return     string json api response
-     * @throws     FirewallException
+     * @throws     AccessLogException
      */
     public function get(?string $ip, ?string $sort = null, ?int $limit = null, ?string $orderBy = null) : array
     {
@@ -33,19 +33,15 @@ class Firewall
         if ($orderBy === null) {
             $orderBy = 'id';
         } else {
-            if (!in_array($orderBy, (new FirewallModel())->getColumns($this->table))) {
+            if (!in_array($orderBy, (new AccessLogModel())->getColumns($this->table))) {
                 return ['error' => 'Invalid orderBy value', 'status' => 400];
             }
         }
-        $firewall = new FirewallModel();
+        $firewall = new AccessLogModel();
         $response = [];
-        // This now allows ids to be passed as well
-        if (is_numeric($ip)) {
-            $ip = (int) $ip;
-        }
         try {
             $response = ['data' => $firewall->get($ip, $sort, $limit, $orderBy), 'status' => 200];
-        } catch (FirewallException $e) {
+        } catch (AccessLogException $e) {
             $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
@@ -56,28 +52,18 @@ class Firewall
         }
         return $response;
     }
-    /**
-     * Saves an IP to the firewall table. If the IP already exists or is malformed, throws an exception, otherwise saves the IP and returns a json response
-     * @category   Controller - Firewall
-     * @author     Original Author <djongov@gamerz-bg.com>
-     * @param      string $ip the ip in normal or CIDR notation
-     * @param      string $createdBy the user who creats the IP, not only for logging purposes, but also for the firewall to know who added the IP
-     * @param      string $comment the comment for the IP
-     * @return     string json api response
-     * @throws     FirewallException
-     */
     public function add(array $data) : array
     {
         $response = [];
         // Filter for invalid parameters
-        $createAcceptedParams = ['cidr', 'createdBy', 'comment'];
+        $createAcceptedParams = ['request_id', 'api_key', 'status_code'];
         foreach ($data as $key => $value) {
             if (!in_array($key, $createAcceptedParams)) {
                 return ['error' => 'Invalid parameter ' . $key, 'status' => 400];
             }
         }
         // Make sure that the required parameters are passed
-        $requiredParams = ['cidr', 'createdBy'];
+        $requiredParams = ['request_id', 'api_key', 'status_code'];
         // Check if the required parameters are passed
         foreach ($requiredParams as $name) {
             if (!array_key_exists($name, $data)) {
@@ -88,20 +74,23 @@ class Firewall
                 return ['error' => 'parameter \'' . $name . '\' cannot be empty', 'status' =>  400];
             }
         }
-        // Make sure that the data is passed in this exact order - cidr, createdBy, comment
-        $ip = $data['cidr'];
-        $createdBy = $data['createdBy'];
-        $comment = $data['comment'] ?? null;
 
-        $firewall = new FirewallModel();
+        // Let's add the rest of the parameters to the data for which we don't need user input
+        $data['client_ip'] = currentIP();
+        $data['user_agent'] = currentBrowser();
+        $data['uri'] = currentUrl();
+        $data['method'] = $_SERVER['REQUEST_METHOD'];
+
+        $firewall = new AccessLogModel();
         try {
-            $responseFromModel = $firewall->add($ip, $createdBy, $comment);
+            $returnData = [];
+            $responseFromModel = $firewall->add($data);
             if ($responseFromModel) {
-                $response = ['data' => 'successfully added ip ' . $ip . ' under id ' . $responseFromModel, 'status' => 201];
+                $response = ['data' => $returnData, 'status' => 200];
             } else {
                 $response = ['error' => 'error', 'status' => 400];
             }
-        } catch (FirewallException $e) {
+        } catch (AccessLogException $e) {
             $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
@@ -111,39 +100,6 @@ class Firewall
             }
         }
 
-        return $response;
-    }
-    /**
-     * Updates an IP to the firewall table. If the IP does not exist or has unknown columns, throws an exception, otherwise updates the IP and returns a json response
-     * @category   Controller - Firewall
-     * @author     Original Author <djongov@gamerz-bg.com>
-     * @param      array $data the data to update, must be an associative array with the column name as key and the new value as value
-     * @param      int $id the id of the IP
-     * @param      string $updatedBy the user who updates the IP, for logging purposes
-     * @return     string json api response
-     * @throws     FirewallException
-     */
-    public function update(array $data, int $id, string $updatedBy) : array
-    {
-        $firewall = new FirewallModel();
-        $response = [];
-        try {
-            $update = $firewall->update($data, $id, $updatedBy);
-            if ($update) {
-                $response = ['data' => 'ip with id ' . $id . ' updated successfully with ' . json_encode($data), 'status' => 200];
-            } else {
-                $response = ['error' => 'update was not successful, either there was nothing to be updated or there was an error', 'status' => 409];
-            }
-            return $response;
-        } catch (FirewallException $e) {
-            $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
-        } catch (\Exception $e) {
-            if (ERROR_VERBOSE) {
-                $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
-            } else {
-                $response = ['error' => 'An unexpected error occurred', 'status' => 500];
-            }
-        }
         return $response;
     }
     /**
@@ -153,12 +109,12 @@ class Firewall
      * @param      int $id the id of the IP
      * @param      string $deletedBy the user who deletes the IP, for logging purposes
      * @return     string json api response
-     * @throws     FirewallException
+     * @throws     AccessLogException
      */
     public function delete(int $id, string $deletedBy) : array
     {
         $response = [];
-        $firewall = new FirewallModel();
+        $firewall = new AccessLogModel();
         try {
             $delete = $firewall->delete($id, $deletedBy);
             if ($delete) {
@@ -166,11 +122,11 @@ class Firewall
             } else {
                 $response = ['error' => 'delete was not successful, either there was nothing to be deleted or there was an error', 'status' => 409];
             }
-        } catch (FirewallException $e) {
-            $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
+        } catch (AccessLogException $e) {
+            $response = ['error' => $e->getMessage(), 'status' => 400];
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                $response = ['error' => $e->getMessage(), 'status' => $e->getCode()];
+                $response = ['error' => $e->getMessage(), 'status' => 400];
             } else {
                 $response = ['error' => 'An unexpected error occurred', 'status' => 500];
             }
