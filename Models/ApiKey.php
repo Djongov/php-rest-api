@@ -54,7 +54,7 @@ class ApiKey extends BasicModel
      * @return     array returns the IP data as an associative array and if no parameter is provided, returns fetch_all
      * @throws     api keyException, IPDoesNotExist, InvalidIP from formatIp
      */
-    public function get(string|int $param = null, ?string $sort = null, ?int $limit = null, ?string $orderBy = null) : array
+    public function get(string|int|null $param, ?string $sort = null, ?int $limit = null, ?string $orderBy = null) : array
     {
         $db = new DB();
         $pdo = $db->getConnection();

@@ -3,7 +3,7 @@
 namespace App\Database;
 
 use App\Utilities\General;
-use Api\Response;
+use App\Api\Response;
 
 class DB
 {
@@ -26,21 +26,8 @@ class DB
             'port' => $port,
             'driver' => $driver
         ];
-        try {
-            $this->connect($config);
-        } catch (\PDOException $e) {
-            if (ERROR_VERBOSE) {
-                Response::output($e->getMessage(), 500);
-            } else {
-                Response::output('Database connection failed', 500);
-            }
-        } catch (\Exception $e) {
-            if (ERROR_VERBOSE) {
-                Response::output($e->getMessage(), 500);
-            } else {
-                Response::output('Database connection failed', 500);
-            }
-        }
+
+        $this->connect($config);
     }
 
     private function connect(array $config): void
@@ -61,19 +48,26 @@ class DB
             $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         } catch (\PDOException $e) {
             if (ERROR_VERBOSE) {
-                Response::output($e->getMessage(), 500);
+                throw new \PDOException("DB: PDO connection failed: " . $e->getMessage());
             } else {
                 Response::output('Database connection failed', 500);
             }
+            error_log("DB: PDO connection failed: " . $e->getMessage());
+            throw $e;
         } catch (\Exception $e) {
             if (ERROR_VERBOSE) {
-                Response::output($e->getMessage(), 500);
+                throw new \PDOException("DB: PDO connection failed: " . $e->getMessage());
             } else {
                 Response::output('Database connection failed', 500);
             }
+            error_log("DB: PDO connection failed: " . $e->getMessage());
+            throw $e;
         }
     }
     
+
+
+
     public function getConnection(): \PDO
     {
         if ($this->pdo instanceof \PDO) {
@@ -254,11 +248,7 @@ class DB
         // First check if all columns exist in the database
         foreach ($array as $column => $data) {
             if (!array_key_exists($column, $dbTableArray)) {
-                if (ERROR_VERBOSE) {
-                    throw new \Exception("Column '$column' does not exist in table '$table'");
-                } else {
-                    throw new \Exception("unknown parameter '$column'");
-                }
+                throw new \Exception("Column '$column' does not exist in table '$table'");
             }
 
             // Now let's check the data types
@@ -287,11 +277,7 @@ class DB
 
             // Compare the data types
             if ($dataType !== $expectedType) {
-                if (ERROR_VERBOSE) {
-                    throw new \Exception("Data type mismatch for column '$column'. Expected '$expectedType', got '$dataType'");
-                } else {
-                    throw new \Exception("Data type mismatch for '$column'");
-                }
+                throw new \Exception("Data type mismatch for column '$column'. Expected '$expectedType', got '$dataType'");
             }
         }
     }
@@ -379,7 +365,7 @@ class DB
         if (str_starts_with($value, 'date') || str_starts_with($value, 'time') || str_starts_with($value, 'timestamp')) {
             $type = 'datetime'; // SQLite stores date/time as text or numeric
         }
-        if (str_starts_with($value, 'boolean') || str_starts_with($value, 'bool')) {
+        if (str_starts_with($value, 'boolean') || str_starts_with($value, 'bool') || str_starts_with($value, 'tinyint')) {
             $type = 'bool'; // BOOLEAN type
         }
 

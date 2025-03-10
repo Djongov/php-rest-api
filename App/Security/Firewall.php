@@ -2,7 +2,7 @@
 namespace App\Security;
 
 use App\Database\DB;
-use Controllers\Api\Output;
+use App\Api\Response;
 use App\Logs\SystemLog;
 use App\Utilities\IP;
 
@@ -22,7 +22,7 @@ class Firewall
 
     public static function activate() {
         // Find out the real client IP
-        $client_ip = IP::currentIP();
+        $client_ip = currentIP();
         $db = new DB();
         $pdo = $db->getConnection();
         $stmt = $pdo->prepare("SELECT * FROM firewall");
@@ -50,7 +50,7 @@ class Firewall
         }
         if (!$valid_ip) {
             SystemLog::write('just tried to access the web app and got Unauthorized', 'Access');
-            Output::error('Unauthorized access for IP Address ' . $client_ip . ' on uri ' . $_SERVER['REQUEST_URI'], 401);
+            Response::output('Unauthorized access for IP Address ' . $client_ip . ' on uri ' . $_SERVER['REQUEST_URI'], 401);
         }
     }
 }
