@@ -1,8 +1,14 @@
 <?php declare(strict_types=1);
 
-// set the display errors to 1
-ini_set('display_errors', 1);
-define('ERROR_VERBOSE', (ini_get('display_errors') == 1) ? true : false);
+define('ROOT', dirname($_SERVER['DOCUMENT_ROOT']));
+
+if (ini_get('display_errors') == 1) {
+    error_reporting(E_ALL);
+    define('ERROR_VERBOSE', true);
+} else {
+    error_reporting(0);
+    define('ERROR_VERBOSE', false);
+}
 
 // version is the version={version} in the version.txt file in the root of the project
 $version = trim(file_get_contents(dirname($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR . 'version.txt'));

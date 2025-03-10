@@ -17,4 +17,16 @@ class BasicModel
         }
         return $columns;
     }
+    public static function applySortingAndLimiting(string $query, ?string $orderBy = null, ?string $sort = null, ?int $limit = null): string
+    {
+        if ($orderBy) {
+            $query .= " ORDER BY $orderBy " . ($sort ?? "ASC");
+        }
+        
+        if ($limit) {
+            $query .= " LIMIT $limit";
+        }
+
+        return $query;
+    }
 }

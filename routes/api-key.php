@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $id = $routeInfo[2]['id'] ?? null;
 
-    HttpHandler::handleGetRequestWithPath($id, 'Controllers\ApiKey');
+    HttpHandler::handleGetRequestWithPath('Controllers\ApiKey', $id);
 }
 
 // api/firewall POST, accepts form data with the "api-key" parameter and optional "comment". The user making the request is taken from the router data

@@ -8,7 +8,7 @@ use Controllers\AccessLog;
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $id = $routeInfo[2]['request_id'] ?? null;
 
-    HttpHandler::handleGetRequestWithPath($id, 'Controllers\AccessLog');
+    HttpHandler::handleGetRequestWithPath('Controllers\AccessLog', $id);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {

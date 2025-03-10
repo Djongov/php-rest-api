@@ -54,7 +54,7 @@ class HttpHandler
         // Output the response
         Response::output($response['data'] ?? $response['error'], (int) $response['status']);
     }
-    public static function handleGetRequestWithPath(string|int $mainParam = null, string $controllerName) : void
+    public static function handleGetRequestWithPath(string $controllerName, string|int|null $mainParam = null) : void
     {
         // This endpoint is for creating a new local user. Cloud users are created in /auth-verify
 

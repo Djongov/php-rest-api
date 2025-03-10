@@ -1,10 +1,10 @@
 <?php declare(strict_types=1);
+
 namespace App\Security;
 
 use App\Database\DB;
 use App\Api\Response;
 use App\Logs\SystemLog;
-use App\Utilities\IP;
 
 class Firewall
 {

@@ -54,40 +54,27 @@ class Firewall extends BasicModel
      * @return     array returns the IP data as an associative array and if no parameter is provided, returns fetch_all
      * @throws     FirewallException, IPDoesNotExist, InvalidIP from formatIp
      */
-    public function get(string|int $param = null, ?string $sort = null, ?int $limit = null, ?string $orderBy = null) : array
+    public function get(string|int|null $param = null, ?string $sort = null, ?int $limit = null, ?string $orderBy = null): array
     {
         $db = new DB();
         $pdo = $db->getConnection();
-        // if the parameter is empty, we assume we want all the IPs
+
         if (!$param) {
             $query = "SELECT * FROM $this->table";
-            // If limit is set, we will limit the results
-            if ($orderBy === null) {
-                $query .= " ORDER BY $orderBy";
-            } else {
-                $query .= " ORDER BY $orderBy $sort";
-            }
-            if ($sort === null) {
-                $query .= " ASC";
-            }
-            if ($limit) {
-                $query .= " LIMIT $limit";
-            }
+            $query = self::applySortingAndLimiting($query, $orderBy, $sort, $limit);
             $stmt = $pdo->query($query);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
-        // If the parameter is an integer, we assume it's an ID
+
         if (is_int($param)) {
             if (!$this->exists($param)) {
                 throw (new FirewallException())->ipDoesNotExist();
             }
-            $stmt = $pdo->prepare("SELECT * FROM $this->table WHERE id = ? ");
+            $stmt = $pdo->prepare("SELECT * FROM $this->table WHERE id = ?");
             $stmt->execute([$param]);
             return $stmt->fetch(\PDO::FETCH_ASSOC);
         } else {
-            // Format the IP
             $param = $this->formatIp($param);
-            // Check if IP exists
             if (!$this->exists($param)) {
                 throw (new FirewallException())->ipDoesNotExist();
             }

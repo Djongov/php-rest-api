@@ -23,7 +23,7 @@ class User
         return count($result) > 0;
     }
     // User get
-    public function get(string|int $param = null) : array
+    public function get(string|int|null $param = null) : array
     {
         $db = new DB();
         $pdo = $db->getConnection();
